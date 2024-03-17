@@ -53,9 +53,6 @@ def get_news(topic):
     except requests.exceptions.RequestException as e:
         print("Error occured during API Request")
 
-
-
-
 def main():
     news = get_news("bitcoin")
     print(news[0])
@@ -150,12 +147,14 @@ class AssistantManager:
                     break
                 elif run_status == "requires_action":
                     print("Function calling now!!")
-                    #self.call_required_functions(self, required_actions)
+                    self.call_required_functions(
+                        required_actions=run_status.required_action.submit_tool_outputs.model_dump()
+                    )
 
     def call_required_functions(self, required_actions):
         if not self.run:
             return
-        tools_outputs = []
+        tool_outputs = []
 
         for action in required_actions["tool_calls"]:
             func_name = action["function"]["name"]
@@ -164,9 +163,32 @@ class AssistantManager:
             if func_name == "get_news":
                 output = get_news(topic=arguments["topic"])
                 print(f"STUFFFF======== {output}")
+                final_str=""
+                for item in output:
+                    final_str += "".join(item)
 
+                tool_outputs.append({"tool_call_id": action["id"],
+                                     "output": final_str})
+            else:
+                raise ValueError (f"Unknown Error : {func_name}")
+        
+        print("Submitting output to Assistant")
+        self.client.beta.threads.runs.submit_tool_outputs(
+            thread_id = self.thread.id,
+            run_id = self.run.id,
+            tool_outputs=tool_outputs
+        ) 
 
-                
+    def get_summary(self):
+        return self.summary
+    
+
+    def run_steps(self):
+        run_steps = self.client.beta.threads.runs.steps.list(
+            thread_id=self.thread.id,
+            run_id=self.run.id
+        )
+        print(f"Run-Steps::: {run_steps}")
 
 if __name__ == "__main__":
     main()
