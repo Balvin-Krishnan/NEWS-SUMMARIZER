@@ -129,25 +129,6 @@ class AssistantManager:
             #     content = msg.content[0]
             #     print(f"SUMMARY----------> {role.capitalize()}: ==> {content}")
 
-    def wait_for_completion(self):
-        if self.thread and self.run:
-            while True:
-                time.sleep(5)
-                run_status=self.client.beta.threads.runs.retrieve(
-                    thread_id=self.thread.id,
-                    run_id=self.run.id
-                )
-                print(f"RUN STATUS:: {run_status.model_dump_json(indent=4)}")
-
-                if run_status.status == "completed":
-                    self.process_message()
-                    break
-                elif run_status.status == "requires_action":
-                    print("Function calling now!!")
-                    self.call_required_functions(
-                        required_actions=run_status.required_action.submit_tool_outputs.model_dump()
-                    )
-
     def call_required_functions(self, required_actions):
         if not self.run:
             return
@@ -176,8 +157,26 @@ class AssistantManager:
         ) 
 
     def get_summary(self):
-        return self.summary
-    
+        return self.summary    
+
+    def wait_for_completion(self):
+        if self.thread and self.run:
+            while True:
+                time.sleep(5)
+                run_status=self.client.beta.threads.runs.retrieve(
+                    thread_id=self.thread.id,
+                    run_id=self.run.id
+                )
+                print(f"RUN STATUS:: {run_status.model_dump_json(indent=4)}")
+
+                if run_status.status == "completed":
+                    self.process_message()
+                    break
+                elif run_status.status == "requires_action":
+                    print("Function calling now!!")
+                    self.call_required_functions(
+                        required_actions=run_status.required_action.submit_tool_outputs.model_dump()
+                    )
 
     def run_steps(self):
         run_steps = self.client.beta.threads.runs.steps.list(
