@@ -55,9 +55,9 @@ def get_news(topic):
         print("Error occured during API Request")
 
 class AssistantManager:
-    thread_id = None
-    assistant_id = None
-
+    thread_id = "thread_TcWGiyfbkreGvWQk3hYQlTPP"
+    assistant_id = "asst_2sVoI738YzMAag3VS9Pdi4ez"
+   
     def __init__(self, model:str=model):
         self.client=client
         self.model=model
@@ -124,10 +124,10 @@ class AssistantManager:
 
             print(f"SUMMARY----------> {role.capitalize()}: ==> {response}")
             
-            for msg in messages:
-                role = msg.role
-                content = msg.content[0]
-                print(f"SUMMARY----------> {role.capitalize()}: ==> {content}")
+            # for msg in messages:
+            #     role = msg.role
+            #     content = msg.content[0]
+            #     print(f"SUMMARY----------> {role.capitalize()}: ==> {content}")
 
     def wait_for_completion(self):
         if self.thread and self.run:
@@ -139,10 +139,10 @@ class AssistantManager:
                 )
                 print(f"RUN STATUS:: {run_status.model_dump_json(indent=4)}")
 
-                if run_status == "completed":
+                if run_status.status == "completed":
                     self.process_message()
                     break
-                elif run_status == "requires_action":
+                elif run_status.status == "requires_action":
                     print("Function calling now!!")
                     self.call_required_functions(
                         required_actions=run_status.required_action.submit_tool_outputs.model_dump()
@@ -164,10 +164,9 @@ class AssistantManager:
                 for item in output:
                     final_str += "".join(item)
 
-                tool_outputs.append({"tool_call_id": action["id"],
-                                     "output": final_str})
+                tool_outputs.append({"tool_call_id": action["id"],"output": final_str})
             else:
-                raise ValueError (f"Unknown Error : {func_name}")
+                raise ValueError (f"Unknown Error: {func_name}")
         
         print("Submitting output to Assistant")
         self.client.beta.threads.runs.submit_tool_outputs(
@@ -186,6 +185,7 @@ class AssistantManager:
             run_id=self.run.id
         )
         print(f"Run-Steps::: {run_steps}")
+        return run_steps.data
 
 def main():
     # news = get_news("bitcoin")
@@ -195,13 +195,13 @@ def main():
     st.title("New Summarizer")
 
     with st.form(key="user_input_form"):
-        instructions = st.text_input("Enter Topic")
+        instructions = st.text_input("Enter Topic:")
         submit_button = st.form_submit_button(label="Run Assistant")
 
         if submit_button:
             manager.create_assistant(
                 name="News Summarizer",
-                instructions="You are a personal article summarizer Assistant who knows how to take a list of article's titles and description and then write a short summary of all the news articles",
+                instructions="You are a personal article summarizer Assistant who knows how to take a list of article's titles and descriptions and then write a short summary of all the news articles",
                 tools=[
                     {
                         "type":"function",
@@ -215,7 +215,6 @@ def main():
                                         "type":"string",
                                         "description":"The topic for the new, e.g. bitcoin",
                                     }
-
                                 },
                                 "required":["topic"],
                             }
@@ -239,7 +238,7 @@ def main():
             summary = manager.get_summary()
             st.write(summary)
             st.text("Run Steps:")
-            st.code(manager.run_steps(),line_numbers=True)
+            st.code(manager.run_steps(), line_numbers=True)
 
 
 if __name__ == "__main__":
