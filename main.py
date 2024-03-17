@@ -163,6 +163,7 @@ class AssistantManager:
 
             if func_name == "get_news":
                 output = get_news(topic=arguments["topic"])
+                print(f"STUFFFF======== {output}")
 
 
                 
